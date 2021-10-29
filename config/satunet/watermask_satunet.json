@@ -3,7 +3,7 @@
     "MODEL": "resunet",
     "NCLASSES": 1,
     "BATCH_SIZE": 5,
-    "FILTERS":10,
+    "FILTERS":17,
     "N_DATA_BANDS": 3,
     "UPSAMPLE_MODE":"simple",
     "DROPOUT":0.1,
