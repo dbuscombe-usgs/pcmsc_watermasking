@@ -1,0 +1,7 @@
+  {
+    "TARGET_SIZE": [768,1024],
+    "WEIGHTS1": "F:\\dbuscombe_github\\pcmsc_watermasking\\weights\\resunet\\3mill_param\\watermask_benchmark_resunet.h5",
+    "WEIGHTS2": "F:\\dbuscombe_github\\pcmsc_watermasking\\weights\\resunet\\3mill_param\\watermask_planecam_resunet.h5",
+    "WEIGHTS3": "F:\\dbuscombe_github\\pcmsc_watermasking\\weights\\resunet\\1mill_param\\watermask_benchmark_resunet.h5",
+    "WEIGHTS4": "F:\\dbuscombe_github\\pcmsc_watermasking\\weights\\resunet\\1mill_param\\watermask_planecam_resunet.h5"
+  }

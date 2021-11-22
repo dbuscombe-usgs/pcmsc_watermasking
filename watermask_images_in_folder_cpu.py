@@ -3,7 +3,7 @@
 #
 # MIT License
 #
-# Copyright (c) 2020, Marda Science LLC
+# Copyright (c) 2020-21, Marda Science LLC
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -71,8 +71,89 @@ print("Eager mode: ", tf.executing_eagerly())
 print('GPU name: ', tf.config.experimental.list_physical_devices('GPU'))
 print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
 
-# import pydensecrf.densecrf as dcrf
-# from pydensecrf.utils import create_pairwise_bilateral, unary_from_labels
+import pydensecrf.densecrf as dcrf
+from pydensecrf.utils import create_pairwise_bilateral, unary_from_labels
+
+
+
+##========================================================
+def crf_refine(label,
+    img,
+    crf_theta_slider_value,
+    crf_mu_slider_value,
+    crf_downsample_factor,
+    gt_prob):
+    """
+    "crf_refine(label, img)"
+    This function refines a label image based on an input label image and the associated image
+    Uses a conditional random field algorithm using spatial and image features
+    INPUTS:
+        * label [ndarray]: label image 2D matrix of integers
+        * image [ndarray]: image 3D matrix of integers
+    OPTIONAL INPUTS: None
+    GLOBAL INPUTS: None
+    OUTPUTS: label [ndarray]: label image 2D matrix of integers
+    """
+
+    Horig = label.shape[0]
+    Worig = label.shape[1]
+
+    l_unique = np.unique(label.flatten())#.tolist()
+    scale = 1+(5 * (np.array(img.shape).max() / 3000))
+
+    # decimate by factor by taking only every other row and column
+    img = img[::crf_downsample_factor,::crf_downsample_factor, :]
+    # do the same for the label image
+    label = label[::crf_downsample_factor,::crf_downsample_factor]
+    # yes, I know this aliases, but considering the task, it is ok; the objective is to
+    # make fast inference and resize the output
+
+    Hnew = label.shape[0]
+    Wnew = label.shape[1]
+
+    orig_mn = np.min(np.array(label).flatten())
+    orig_mx = np.max(np.array(label).flatten())
+
+    if l_unique[0]==0:
+        n = (orig_mx-orig_mn)#+1
+    else:
+
+        n = (orig_mx-orig_mn)+1
+        label = (label - orig_mn)+1
+        mn = np.min(np.array(label).flatten())
+        mx = np.max(np.array(label).flatten())
+
+        n = (mx-mn)+1
+
+    H = label.shape[0]
+    W = label.shape[1]
+    U = unary_from_labels(label.astype('int'), n, gt_prob=gt_prob)
+    d = dcrf.DenseCRF2D(H, W, n)
+    d.setUnaryEnergy(U)
+
+    # to add the color-independent term, where features are the locations only:
+    d.addPairwiseGaussian(sxy=(3, 3),
+                 compat=3,
+                 kernel=dcrf.DIAG_KERNEL,
+                 normalization=dcrf.NORMALIZE_SYMMETRIC)
+    feats = create_pairwise_bilateral(
+                          sdims=(crf_theta_slider_value, crf_theta_slider_value),
+                          schan=(scale,scale,scale),
+                          img=img,
+                          chdim=2)
+
+    d.addPairwiseEnergy(feats, compat=crf_mu_slider_value, kernel=dcrf.DIAG_KERNEL,normalization=dcrf.NORMALIZE_SYMMETRIC) #260
+
+    Q = d.inference(10)
+    result = np.argmax(Q, axis=0).reshape((H, W)).astype(np.uint8) +1
+
+    uniq = np.unique(result.flatten())
+
+    result = resize(result, (Horig, Worig), order=0, anti_aliasing=False) #True)
+
+    result = rescale(result, orig_mn, orig_mx).astype(np.uint8)
+
+    return result, n
 
 # #-----------------------------------
 def seg_file2tensor_3band(f):#, resize):
@@ -180,20 +261,51 @@ def do_seg(f, models, W, meta):
     start = time.time()
 
     image, w, h, bigimage = seg_file2tensor_3band(f)#, resize=True)
-    image = standardize(image.numpy()).squeeze()
+    image_stan = standardize(image.numpy()).squeeze()
+	
+    do_crf_refine = True
 
 
     E0 = []; E1 = []; #W = []
 
     for counter,model in enumerate(models):
 
-        est_label = model.predict(tf.expand_dims(image, 0) , batch_size=1).squeeze()
+        est_label = model.predict(tf.expand_dims(image_stan, 0) , batch_size=1).squeeze()
+		
+        #if do_crf_refine:
+           # height, width, nlabels = est_label.shape
+           # d = dcrf.DenseCRF2D(height, width, nlabels)
+           # #U = est_label.transpose(2, 0, 1)
+           # #U=est_label.reshape((nlabels,-1))		
+           # #U = U.reshape((nlabels,-1))
+           # #d.setUnaryEnergy(-np.log(U).copy(order='C'))
+           # U = unary_from_labels(np.argmax(est_label,-1).astype('int')+1, 2, gt_prob=0.51)
+           # d.setUnaryEnergy(U)
+           # d.addPairwiseGaussian(sxy=13, compat=3)
+           # im= image.numpy().squeeze()
+           # feats = create_pairwise_bilateral(
+                          # sdims=(80, 80),
+                          # schan=(13,13,13),
+                          # img=im,
+                          # chdim=2)
+
+           # d.addPairwiseEnergy(feats, compat=3, kernel=dcrf.DIAG_KERNEL,normalization=dcrf.NORMALIZE_SYMMETRIC) 
+           # #im=im.transpose(1, 0, 2).copy(order='C')
+           # #d.addPairwiseBilateral(sxy=80, srgb=13, rgbim=im, compat=10)
+           # Q = d.inference(15)
+           # est_label = np.array(Q).reshape(height, width, nlabels)		
+		
         # E0.append(est_label[:,:,0])
         # E1.append(est_label[:,:,1])
         print('Model {} applied'.format(counter))
-        E0.append(resize(est_label[:,:,0],(w,h), preserve_range=True, clip=True))
-        E1.append(resize(est_label[:,:,1],(w,h), preserve_range=True, clip=True))
-        del est_label
+        e0 = resize(est_label[:,:,0],(w,h), preserve_range=True, clip=True)
+        e1 = resize(est_label[:,:,1],(w,h), preserve_range=True, clip=True)
+        ##e0 = maximum_filter(e0,(3,3))
+        e1 = maximum_filter(e1,(3,3))
+		
+        E0.append(e0)
+        E1.append(e1)
+        del est_label, e0, e1
 
         # est_label = np.argmax(est_label, -1)
         # E.append(est_label)
@@ -207,7 +319,7 @@ def do_seg(f, models, W, meta):
 
     print('Models applied')
     K.clear_session()
-    del image
+    del image_stan
 
 
     # outfile = TemporaryFile()
@@ -231,6 +343,22 @@ def do_seg(f, models, W, meta):
 
     del E1
 
+		
+
+
+    # prbs_logs = e0 * np.log2(e0)
+    # num = 0 - prbs_logs 
+    # denom = np.log2(2)
+    # entropy0 = num / denom
+
+    # prbs_logs = e1 * np.log2(e1)
+    # num = 0 - prbs_logs 
+    # denom = np.log2(2)
+    # entropy1 = num / denom
+
+    # mask_ent = (e0>0.25).astype('uint8') + (e1>0.25).astype('uint8')
+    # del entropy0, entropy1, prbs_logs, num, denom
+
 
     # thres0 = threshold_otsu(e0)
     # # print("Probability of water threshold: %f" % (thres0))
@@ -249,7 +377,7 @@ def do_seg(f, models, W, meta):
 
     del e0, e1
 
-    est_label = maximum_filter(est_label,(7,7))
+    est_label = maximum_filter(est_label,(3,3))
 
     print('Probability of land computed')
 
@@ -284,32 +412,77 @@ def do_seg(f, models, W, meta):
     print('Probability stack computed')
 
     ####===============================================================
-    temp = -0.05
-    thres_land = threshold_otsu(out_stack[:,:,0])+temp
+    #temp = -0.1
+    thres_land = threshold_otsu(out_stack[:,:,0])#+temp
     thres_conf = threshold_otsu(out_stack[:,:,1])
     thres_var = threshold_otsu(out_stack[:,:,2])
     print("Land threshold: %f" % (thres_land))
     print("Confidence threshold: %f" % (thres_conf))
     print("Variance threshold: %f" % (thres_var))
 
-    #mask1 (conservative)
-    mask1 = (out_stack[:,:,0]>thres_land) & (out_stack[:,:,1]>thres_conf) & (out_stack[:,:,2]<thres_var)
-    mask2 = (out_stack[:,:,0]>thres_land) & (out_stack[:,:,2]<thres_var)
-    mask3 = (out_stack[:,:,0]>thres_land) & (out_stack[:,:,1]>thres_conf)
-    mask4 = (out_stack[:,:,0]>thres_land)
-    # del var0, var1, est_label, conf
+    # #mask1 (conservative)
+    # mask1 = (out_stack[:,:,0]>thres_land) & (out_stack[:,:,1]>thres_conf) & (out_stack[:,:,2]<thres_var)
+    # mask2 = (out_stack[:,:,0]>thres_land) & (out_stack[:,:,2]<thres_var)
+    # mask3 = (out_stack[:,:,0]>thres_land) & (out_stack[:,:,1]>thres_conf)
+    # mask4 = (out_stack[:,:,0]>thres_land)
+    # # del var0, var1, est_label, conf
 
-    #ultra-conservative
-    mask0 = ((mask1+mask2+mask3+mask4)==4).astype('uint8')
+    # #ultra-conservative
+    # mask0 = ((mask1+mask2+mask3+mask4)==4).astype('uint8')
 
-	#ultra-liberal
-    #mask5 = (out_stack[:,:,0]>thres_land) & (out_stack[:,:,1]<thres_conf) & (out_stack[:,:,2]>thres_var)
+	# #ultra-liberal
+    # #mask5 = (out_stack[:,:,0]>thres_land) & (out_stack[:,:,1]<thres_conf) & (out_stack[:,:,2]>thres_var)
 
-    mask5 = ((mask1+mask2+mask3+mask4)>0).astype('uint8')
-    mask5[out_stack[:,:,1]<thres_conf] = 1
+    # mask5 = ((mask1+mask2+mask3+mask4)>0).astype('uint8')
+    # mask5[out_stack[:,:,1]<thres_conf] = 1
+	
+    # mask6 = (out_stack[:,:,0]>.1) & (out_stack[:,:,1]<.5)
+    # mask6 = ((mask1+mask2+mask3+mask4+mask5+mask6)>0).astype('uint8')
 
-    land = (out_stack[:,:,0]>thres_land)
+    #land = (out_stack[:,:,0]>thres_land)
     # land = (conf>thres_conf)
+	
+    mask0 = (out_stack[:,:,0]>thres_land).astype('uint8')
+    mask1 = mask0 + (out_stack[:,:,1]<thres_conf).astype('uint8')
+    mask1[mask1>1]=1
+
+    mask2 = mask1 + (out_stack[:,:,2]>thres_var).astype('uint8')
+    mask2[mask2>1]=1
+
+    nx,ny=np.shape(mask1)
+    island_thres = 100*np.maximum(nx,ny)
+
+
+    # mask3 = remove_small_holes(mask3.astype('bool'), island_thres)
+    # mask4 = remove_small_holes(mask4.astype('bool'), island_thres)
+    # mask5 = remove_small_holes(mask5.astype('bool'), island_thres)
+    # mask6 = remove_small_holes(mask6.astype('bool'), island_thres)
+		
+    #land = remove_small_objects(land, island_thres).astype('uint8')
+	
+
+    crf_theta_slider_value=1
+    crf_mu_slider_value=1
+    crf_downsample_factor=5
+    gt_prob=0.51
+    mask3 , n = crf_refine(mask0+1,bigimage,crf_theta_slider_value,crf_mu_slider_value,crf_downsample_factor,gt_prob)
+    mask4 , n = crf_refine(mask1+1,bigimage,crf_theta_slider_value,crf_mu_slider_value,crf_downsample_factor,gt_prob)
+    mask5 , n = crf_refine(mask2+1,bigimage,crf_theta_slider_value,crf_mu_slider_value,crf_downsample_factor,gt_prob)
+	
+    mask3 -= 1
+    mask4 -= 1
+    mask5 -= 1
+
+    mask0 = remove_small_holes(mask0.astype('bool'), island_thres).astype('uint8')
+    mask1 = remove_small_holes(mask1.astype('bool'), island_thres).astype('uint8')
+    mask2 = remove_small_holes(mask2.astype('bool'), island_thres).astype('uint8')
+    mask3 = remove_small_holes(mask3.astype('bool'), island_thres).astype('uint8')
+    mask4 = remove_small_holes(mask4.astype('bool'), island_thres).astype('uint8')	
+    mask5 = remove_small_holes(mask5.astype('bool'), island_thres).astype('uint8')	
+	
+    mask6 = ((mask0+mask1+mask2+mask3+mask4+mask5)>0).astype('uint8')
+
+    land = mask6.copy()	
 
     del out_stack
 
@@ -384,20 +557,26 @@ def do_seg(f, models, W, meta):
     imsave(outfile.replace('.tif','.jpg'),255*mask5.astype('uint8'),quality=100)
     del mask5
 
-    nx,ny=np.shape(land)
-    island_thres = 100*np.maximum(nx,ny)
-
-    land = remove_small_holes(land.astype('bool'), island_thres)
-    land = remove_small_objects(land, island_thres).astype('uint8')
-
-    outfile = segfile.replace(os.path.normpath(sample_direc), os.path.normpath(sample_direc+os.sep+'masks'))
+    #====================
+    outfile = segfile.replace(os.path.normpath(sample_direc), os.path.normpath(sample_direc+os.sep+'masks6'))
 
     try:
-        os.mkdir(os.path.normpath(sample_direc+os.sep+'masks'))
+        os.mkdir(os.path.normpath(sample_direc+os.sep+'masks6'))
     except:
         pass
 
-    imsave(outfile.replace('.tif','.jpg'),255*land.astype('uint8'),quality=100)
+    imsave(outfile.replace('.tif','.jpg'),255*mask6.astype('uint8'),quality=100)
+    del mask6
+
+    # #====================
+    # outfile = segfile.replace(os.path.normpath(sample_direc), os.path.normpath(sample_direc+os.sep+'masks'))
+
+    # try:
+        # os.mkdir(os.path.normpath(sample_direc+os.sep+'masks'))
+    # except:
+        # pass
+
+    # imsave(outfile.replace('.tif','.jpg'),255*land.astype('uint8'),quality=100)
 
 
     class_label_colormap = ['#3366CC','#DC3912']
@@ -491,27 +670,58 @@ if 'WEIGHTS6' in locals():
 
 meta['TARGET_SIZE'] = TARGET_SIZE
 
-models = []
-for w in weights:
 
-    if 'resunet' in w:
+M= []; C=[]; T = []
+for counter,w in enumerate(weights):
+    configfile = w.replace('.h5','.json').replace('weights', 'config')
+
+
+    with open(configfile) as f:
+        config = json.load(f)
+
+    for k in config.keys():
+        exec(k+'=config["'+k+'"]')
+
+
+    from imports import *
+
+    #=======================================================
+
+    print('.....................................')
+    print('Creating and compiling model {}...'.format(counter))
+
+    if MODEL =='resunet':
+        model =  custom_resunet((TARGET_SIZE[0], TARGET_SIZE[1], N_DATA_BANDS),
+                        FILTERS,
+                        nclasses=[NCLASSES+1 if NCLASSES==1 else NCLASSES][0],
+                        kernel_size=(KERNEL,KERNEL),
+                        strides=STRIDE,
+                        dropout=DROPOUT,#0.1,
+                        dropout_change_per_layer=DROPOUT_CHANGE_PER_LAYER,#0.0,
+                        dropout_type=DROPOUT_TYPE,#"standard",
+                        use_dropout_on_upsampling=USE_DROPOUT_ON_UPSAMPLING,#False,
+                        )
+    elif MODEL=='unet':
+        model =  custom_unet((TARGET_SIZE[0], TARGET_SIZE[1], N_DATA_BANDS),
+                        FILTERS,
+                        nclasses=[NCLASSES+1 if NCLASSES==1 else NCLASSES][0],
+                        kernel_size=(KERNEL,KERNEL),
+                        strides=STRIDE,
+                        dropout=DROPOUT,#0.1,
+                        dropout_change_per_layer=DROPOUT_CHANGE_PER_LAYER,#0.0,
+                        dropout_type=DROPOUT_TYPE,#"standard",
+                        use_dropout_on_upsampling=USE_DROPOUT_ON_UPSAMPLING,#False,
+                        )
+
+    elif MODEL =='simple_resunet':
         # num_filters = 8 # initial filters
         # model = res_unet((TARGET_SIZE[0], TARGET_SIZE[1], N_DATA_BANDS), num_filters, NCLASSES, (KERNEL_SIZE, KERNEL_SIZE))
-        NCLASSES= 1
-        FILTERS=10
-        N_DATA_BANDS= 3
-        UPSAMPLE_MODE="simple"
-        DROPOUT=0.1
-        DROPOUT_CHANGE_PER_LAYER=0.0
-        DROPOUT_TYPE="standard"
-        USE_DROPOUT_ON_UPSAMPLING=False
 
-        model = custom_resunet((TARGET_SIZE[0], TARGET_SIZE[1], N_DATA_BANDS),
+        model = simple_resunet((TARGET_SIZE[0], TARGET_SIZE[1], N_DATA_BANDS),
                     kernel = (2, 2),
                     num_classes=[NCLASSES+1 if NCLASSES==1 else NCLASSES][0],
                     activation="relu",
                     use_batch_norm=True,
-                    upsample_mode=UPSAMPLE_MODE,#"deconv",
                     dropout=DROPOUT,#0.1,
                     dropout_change_per_layer=DROPOUT_CHANGE_PER_LAYER,#0.0,
                     dropout_type=DROPOUT_TYPE,#"standard",
@@ -520,23 +730,12 @@ for w in weights:
                     num_layers=4,
                     strides=(1,1))
     #346,564
-    elif 'unet' in w:
-
-        NCLASSES= 1
-        FILTERS=13
-        N_DATA_BANDS= 3
-        UPSAMPLE_MODE="simple"
-        DROPOUT=0.1
-        DROPOUT_CHANGE_PER_LAYER=0.0
-        DROPOUT_TYPE="standard"
-        USE_DROPOUT_ON_UPSAMPLING=False
-
-        model = custom_unet((TARGET_SIZE[0], TARGET_SIZE[1], N_DATA_BANDS),
+    elif MODEL=='simple_unet':
+        model = simple_unet((TARGET_SIZE[0], TARGET_SIZE[1], N_DATA_BANDS),
                     kernel = (2, 2),
                     num_classes=[NCLASSES+1 if NCLASSES==1 else NCLASSES][0],
                     activation="relu",
                     use_batch_norm=True,
-                    upsample_mode=UPSAMPLE_MODE,#"deconv",
                     dropout=DROPOUT,#0.1,
                     dropout_change_per_layer=DROPOUT_CHANGE_PER_LAYER,#0.0,
                     dropout_type=DROPOUT_TYPE,#"standard",
@@ -546,24 +745,14 @@ for w in weights:
                     strides=(1,1))
     #242,812
 
-    elif 'satunet' in w:
-        # model = sat_unet((TARGET_SIZE[0], TARGET_SIZE[1], N_DATA_BANDS), num_classes=NCLASSES)
-
-        NCLASSES= 1
-        FILTERS=17
-        N_DATA_BANDS= 3
-        UPSAMPLE_MODE="simple"
-        DROPOUT=0.1
-        DROPOUT_CHANGE_PER_LAYER=0.0
-        DROPOUT_TYPE="standard"
-        USE_DROPOUT_ON_UPSAMPLING=False
+    elif MODEL=='satunet':
+        #model = sat_unet((TARGET_SIZE[0], TARGET_SIZE[1], N_DATA_BANDS), num_classes=NCLASSES)
 
         model = custom_satunet((TARGET_SIZE[0], TARGET_SIZE[1], N_DATA_BANDS),
                     kernel = (2, 2),
                     num_classes=[NCLASSES+1 if NCLASSES==1 else NCLASSES][0],
                     activation="relu",
                     use_batch_norm=True,
-                    upsample_mode=UPSAMPLE_MODE,#"deconv",
                     dropout=DROPOUT,#0.1,
                     dropout_change_per_layer=DROPOUT_CHANGE_PER_LAYER,#0.0,
                     dropout_type=DROPOUT_TYPE,#"standard",
@@ -572,21 +761,87 @@ for w in weights:
                     num_layers=4,
                     strides=(1,1))
 
-    # else:
-    #     print("Model must be one of 'unet', 'resunet', or 'satunet'")
-    #     sys.exit(2)
+    else:
+        print("Model must be one of 'unet', 'resunet', or 'satunet'")
+        sys.exit(2)
+
 
     # model.compile(optimizer = 'adam', loss = 'categorical_crossentropy', metrics = [mean_iou, dice_coef])
     model.compile(optimizer = 'adam', loss = dice_coef_loss, metrics = [mean_iou, dice_coef])
 
     model.load_weights(w)
 
-    models.append(model)
+    M.append(model)
+    C.append(configfile)
+    T.append(MODEL)
+
+
+metadatadict = {}
+metadatadict['model_weights'] = W
+metadatadict['config_files'] = C
+metadatadict['model_types'] = T
+
+# models = []
+# for w in weights:
+
+    # if 'resunet' in w:
+        # # num_filters = 8 # initial filters
+        # # model = res_unet((TARGET_SIZE[0], TARGET_SIZE[1], N_DATA_BANDS), num_filters, NCLASSES, (KERNEL_SIZE, KERNEL_SIZE))
+        # KERNEL = 7
+        # STRIDE= 2
+        # NCLASSES= 1
+        # FILTERS=6
+        # N_DATA_BANDS= 3
+        # UPSAMPLE_MODE="simple"
+        # DROPOUT=0.1
+        # DROPOUT_CHANGE_PER_LAYER=0.0
+        # DROPOUT_TYPE="standard"
+        # USE_DROPOUT_ON_UPSAMPLING=False
+
+        # model =  custom_resunet((TARGET_SIZE[0], TARGET_SIZE[1], N_DATA_BANDS),
+				# FILTERS,
+				# nclasses=[NCLASSES+1 if NCLASSES==1 else NCLASSES][0],
+				# kernel_size=(KERNEL,KERNEL),
+				# strides=STRIDE,
+				# dropout=DROPOUT,#0.1,
+				# dropout_change_per_layer=DROPOUT_CHANGE_PER_LAYER,#0.0,
+				# dropout_type=DROPOUT_TYPE,#"standard",
+				# use_dropout_on_upsampling=USE_DROPOUT_ON_UPSAMPLING
+				# )
+    # #346,564
+    # elif 'unet' in w:
+
+        # NCLASSES= 1
+        # FILTERS=8
+        # N_DATA_BANDS= 3
+        # UPSAMPLE_MODE="simple"
+        # DROPOUT=0.1
+        # DROPOUT_CHANGE_PER_LAYER=0.0
+        # DROPOUT_TYPE="standard"
+        # USE_DROPOUT_ON_UPSAMPLING=False
+
+        # model =  custom_unet((TARGET_SIZE[0], TARGET_SIZE[1], N_DATA_BANDS),
+				# FILTERS,
+				# nclasses=[NCLASSES+1 if NCLASSES==1 else NCLASSES][0],
+				# kernel_size=(KERNEL,KERNEL),
+				# strides=STRIDE,
+				# dropout=DROPOUT,#0.1,
+				# dropout_change_per_layer=DROPOUT_CHANGE_PER_LAYER,#0.0,
+				# dropout_type=DROPOUT_TYPE,#"standard",
+				# use_dropout_on_upsampling=USE_DROPOUT_ON_UPSAMPLING,#False,
+				# )
+
+    # # model.compile(optimizer = 'adam', loss = 'categorical_crossentropy', metrics = [mean_iou, dice_coef])
+    # model.compile(optimizer = 'adam', loss = dice_coef_loss, metrics = [mean_iou, dice_coef])
+
+    # model.load_weights(w)
+
+    # models.append(model)
 
 
 # W = [1,1,1,1,.5,.5]
 
-W = [1 for m in models]
+W = [1 for m in M]
 
 ### predict
 print('.....................................')
@@ -601,7 +856,7 @@ sample_filenames = sorted(glob(sample_direc+os.sep+'*.jpg'))
 print('Number of samples: %i' % (len(sample_filenames)))
 
 for counter,f in enumerate(sample_filenames):
-    do_seg(f, models, W, meta)
+    do_seg(f, M, W, metadatadict)
     print('%i out of %i done'%(counter,len(sample_filenames)))
 
 

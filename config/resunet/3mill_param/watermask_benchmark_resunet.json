@@ -7,6 +7,7 @@
     "BATCH_SIZE": 5,
     "FILTERS":6,
     "N_DATA_BANDS": 3,
+	"LOSS":"cat",	
     "DROPOUT":0.1,
     "DROPOUT_CHANGE_PER_LAYER":0.0,
     "DROPOUT_TYPE":"standard",
@@ -32,5 +33,6 @@
     "AUG_HFLIP": false,
     "AUG_VFLIP": false,
     "AUG_LOOPS": 10,
-    "AUG_COPIES": 3
+    "AUG_COPIES": 3,
+	"SET_GPU": 1	
   }
