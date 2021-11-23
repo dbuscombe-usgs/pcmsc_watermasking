@@ -671,13 +671,18 @@ for counter,w in enumerate(weights):
     T.append(MODEL)
 
 
-metadatadict = {}
-metadatadict['model_weights'] = W
-metadatadict['config_files'] = C
-metadatadict['model_types'] = T
+# metadatadict = {}
+meta['model_weights'] = W
+meta['config_files'] = C
+meta['model_types'] = T
 
+if 'WEIGHTING' in locals():
+    meta['WEIGHTING'] = WEIGHTING
+else:
+    WEIGHTING =  [1 for m in M]
+    meta['WEIGHTING'] = WEIGHTING
 
-W = [1 for m in M]
+# W = [1 for m in M]
 
 ### predict
 print('.....................................')
@@ -688,7 +693,7 @@ sample_filenames = sorted(glob(sample_direc+os.sep+'*.jpg'))
 print('Number of samples: %i' % (len(sample_filenames)))
 
 for counter,f in enumerate(sample_filenames):
-    do_seg(f, M, W, metadatadict)
+    do_seg(f, M, WEIGHTING, meta)
     print('%i out of %i done'%(counter,len(sample_filenames)))
 
 
