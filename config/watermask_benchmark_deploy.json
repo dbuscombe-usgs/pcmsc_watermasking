@@ -1,9 +1,0 @@
-  {
-    "TARGET_SIZE": [768,1024],
-    "WEIGHTS1": "/media/marda/TWOTB1/USGS/SOFTWARE/Projects/UNets/github/pcmsc_watermasking/weights/resunet/watermask_benchmark_resunet.h5",
-    "WEIGHTS2": "/media/marda/TWOTB1/USGS/SOFTWARE/Projects/UNets/github/pcmsc_watermasking/weights/unet/watermask_benchmark_unet.h5",
-    "WEIGHTS3": "/media/marda/TWOTB1/USGS/SOFTWARE/Projects/UNets/github/pcmsc_watermasking/weights/resunet/watermask_planecam_resunet.h5",
-    "WEIGHTS4": "/media/marda/TWOTB1/USGS/SOFTWARE/Projects/UNets/github/pcmsc_watermasking/weights/unet/watermask_planecam_unet.h5",
-    "WEIGHTS5": "/media/marda/TWOTB1/USGS/SOFTWARE/Projects/UNets/github/pcmsc_watermasking/weights/resunet/watermask_resunet.h5",
-    "WEIGHTS6": "/media/marda/TWOTB1/USGS/SOFTWARE/Projects/UNets/github/pcmsc_watermasking/weights/unet/watermask_unet.h5"
-  }
