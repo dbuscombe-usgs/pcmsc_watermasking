@@ -25,7 +25,7 @@
 
 import os, time
 
-USE_GPU =True #False
+USE_GPU =False
 
 if USE_GPU == True:
    ##use the first available GPU
@@ -241,7 +241,7 @@ def label_to_colors(
 
 
 # =========================================================
-def do_seg(f, models, W, meta):
+def do_seg(f, M, WEIGHTING, meta):
 
     meta['image_filename'] = f.split(os.sep)[-1]
 
@@ -261,7 +261,7 @@ def do_seg(f, models, W, meta):
 
     E0 = []; E1 = [];
 
-    for counter,model in enumerate(models):
+    for counter,model in enumerate(M):
 
         est_label = model.predict(tf.expand_dims(image_stan, 0) , batch_size=1).squeeze()
 
@@ -286,20 +286,21 @@ def do_seg(f, models, W, meta):
     # del fp
 
     # E0 = [resize(e,(w,h), preserve_range=True, clip=True) for e in E0]
-    e0 = np.average(np.dstack(E0), axis=-1, weights=np.array(W))
+    e0 = np.average(np.dstack(E0), axis=-1, weights=np.array(WEIGHTING))
 
     var0 = np.std(np.dstack(E0), axis=-1)
 
     del E0
 
     # E1 = [resize(e,(w,h), preserve_range=True, clip=True) for e in E1]
-    e1 = np.average(np.dstack(E1), axis=-1, weights=np.array(W))
+    e1 = np.average(np.dstack(E1), axis=-1, weights=np.array(WEIGHTING))
 
     var1 = np.std(np.dstack(E1), axis=-1)
 
     del E1
 
-    est_label = (e1+(1-e0))/2
+    #est_label = (e1+(1-e0))/2
+    est_label = np.maximum(e1, 1-e0)
 
     conf=1-np.minimum(e0,e1)
 
@@ -347,49 +348,51 @@ def do_seg(f, models, W, meta):
     print("Confidence threshold: %f" % (thres_conf))
     print("Variance threshold: %f" % (thres_var))
 
-    # #mask1 (conservative)
-    # mask1 = (out_stack[:,:,0]>thres_land) & (out_stack[:,:,1]>thres_conf) & (out_stack[:,:,2]<thres_var)
-    # mask2 = (out_stack[:,:,0]>thres_land) & (out_stack[:,:,2]<thres_var)
-    # mask3 = (out_stack[:,:,0]>thres_land) & (out_stack[:,:,1]>thres_conf)
-    # mask4 = (out_stack[:,:,0]>thres_land)
-    # # del var0, var1, est_label, conf
+    meta['otsu_land'] = thres_land
+    meta['otsu_confidence'] = thres_conf
+    meta['otsu_variance'] = thres_var
 
-    # #ultra-conservative
-    # mask0 = ((mask1+mask2+mask3+mask4)==4).astype('uint8')
 
-	# #ultra-liberal
-    # #mask5 = (out_stack[:,:,0]>thres_land) & (out_stack[:,:,1]<thres_conf) & (out_stack[:,:,2]>thres_var)
+    #mask1 (conservative)
+    mask1 = ((out_stack[:,:,0]>thres_land) & (out_stack[:,:,1]>thres_conf) & (out_stack[:,:,2]<thres_var)).astype('uint8')
+    mask2 = ((out_stack[:,:,0]>thres_land) & (out_stack[:,:,2]<thres_var)).astype('uint8')
+    mask3 = ((out_stack[:,:,0]>thres_land) & (out_stack[:,:,1]>thres_conf)).astype('uint8')
+    #mask4 = (out_stack[:,:,0]>thres_land)
+    mask4 = (out_stack[:,:,0]>thres_land).astype('uint8')
+
+    #ultra-conservative
+    mask0 = ((mask1+mask2+mask3+mask4)==4).astype('uint8')
+
+	#ultra-liberal
+    #mask5 = (out_stack[:,:,0]>thres_land) & (out_stack[:,:,1]<thres_conf) & (out_stack[:,:,2]>thres_var)
 
     # mask5 = ((mask1+mask2+mask3+mask4)>0).astype('uint8')
     # mask5[out_stack[:,:,1]<thres_conf] = 1
 
     # mask6 = (out_stack[:,:,0]>.1) & (out_stack[:,:,1]<.5)
     # mask6 = ((mask1+mask2+mask3+mask4+mask5+mask6)>0).astype('uint8')
+	
+    mask5 = mask4 + (out_stack[:,:,1]<thres_conf).astype('uint8')
+    mask5[mask5>1]=1
 
-    #land = (out_stack[:,:,0]>thres_land)
-    # land = (conf>thres_conf)
-
-    mask0 = (out_stack[:,:,0]>thres_land).astype('uint8')
-    mask1 = mask0 + (out_stack[:,:,1]<thres_conf).astype('uint8')
-    mask1[mask1>1]=1
-
-    mask2 = mask1 + (out_stack[:,:,2]>thres_var).astype('uint8')
-    mask2[mask2>1]=1
+    mask6 = mask5 + (out_stack[:,:,2]>thres_var).astype('uint8')
+    mask6[mask6>1]=1
 
     nx,ny=np.shape(mask1)
     island_thres = 100*np.maximum(nx,ny)
+    meta['island_thres'] = island_thres
 
-    crf_theta_slider_value=1
-    crf_mu_slider_value=1
-    crf_downsample_factor=5
-    gt_prob=0.51
-    mask3 , n = crf_refine(mask0+1,bigimage,crf_theta_slider_value,crf_mu_slider_value,crf_downsample_factor,gt_prob)
-    mask4 , n = crf_refine(mask1+1,bigimage,crf_theta_slider_value,crf_mu_slider_value,crf_downsample_factor,gt_prob)
-    mask5 , n = crf_refine(mask2+1,bigimage,crf_theta_slider_value,crf_mu_slider_value,crf_downsample_factor,gt_prob)
+    # crf_theta_slider_value=1
+    # crf_mu_slider_value=1
+    # crf_downsample_factor=5
+    # gt_prob=0.51
+    # mask3 , n = crf_refine(mask0+1,bigimage,crf_theta_slider_value,crf_mu_slider_value,crf_downsample_factor,gt_prob)
+    # mask4 , n = crf_refine(mask1+1,bigimage,crf_theta_slider_value,crf_mu_slider_value,crf_downsample_factor,gt_prob)
+    # mask5 , n = crf_refine(mask2+1,bigimage,crf_theta_slider_value,crf_mu_slider_value,crf_downsample_factor,gt_prob)
 
-    mask3 -= 1
-    mask4 -= 1
-    mask5 -= 1
+    # mask3 -= 1
+    # mask4 -= 1
+    # mask5 -= 1
 
     mask0 = remove_small_holes(mask0.astype('bool'), island_thres).astype('uint8')
     mask1 = remove_small_holes(mask1.astype('bool'), island_thres).astype('uint8')
@@ -399,11 +402,27 @@ def do_seg(f, models, W, meta):
     mask5 = remove_small_holes(mask5.astype('bool'), island_thres).astype('uint8')
 
     mask6 = ((mask0+mask1+mask2+mask3+mask4+mask5)>0).astype('uint8')
+    mask6 = remove_small_holes(mask6.astype('bool'), island_thres).astype('uint8')
 
     del out_stack
 
     print('Land masks computed')
 
+    elapsed = (time.time() - start)/60
+    meta['elapsed_minutes'] = elapsed
+
+    print("Image masking took "+ str(elapsed) + " minutes")
+	
+    #====================
+    outfile = segfile.replace(os.path.normpath(sample_direc), os.path.normpath(sample_direc+os.sep+'meta'))
+
+    try:
+        os.mkdir(os.path.normpath(sample_direc+os.sep+'meta'))
+    except:
+        pass
+		
+    np.savez_compressed(outfile.replace('.tif','.npz'), **meta)
+	
     #====================
     outfile = segfile.replace(os.path.normpath(sample_direc), os.path.normpath(sample_direc+os.sep+'masks0'))
 
@@ -508,10 +527,10 @@ def do_seg(f, models, W, meta):
 
     del bigimage, color_label
 
+
     print('Outputs made')
 
-    elapsed = (time.time() - start)/60
-    print("Image masking took "+ str(elapsed) + " minutes")
+
 
 #====================================================
 
