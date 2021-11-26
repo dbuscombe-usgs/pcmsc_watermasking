@@ -274,7 +274,7 @@ def do_seg(f, M, WEIGHTING, meta):
         E1.append(e1)
         del est_label, e0, e1
 
-    print('Models applied')
+    #print('Models applied')
     K.clear_session()
     del image_stan
 
@@ -308,37 +308,15 @@ def do_seg(f, M, WEIGHTING, meta):
 
     est_label = maximum_filter(est_label,(3,3))
 
-    print('Probability of land computed')
+    #print('Probability of land computed')
 
     # plt.imshow(bigimage); plt.imshow(est_label, alpha=0.5); plt.show()
 
     out_stack = np.dstack((est_label,conf,var0+var1))
     del est_label, conf, var0, var1
 
-    outfile = segfile.replace(os.path.normpath(sample_direc), os.path.normpath(sample_direc+os.sep+'prob_stack'))
 
-    try:
-    	os.mkdir(os.path.normpath(sample_direc+os.sep+'prob_stack'))
-    except:
-    	pass
-
-    imsave(outfile.replace('.tif','.png'),(100*out_stack).astype('uint8'),compression=9)
-
-
-    outfile = segfile.replace(os.path.normpath(sample_direc), os.path.normpath(sample_direc+os.sep+'probstack_overlays'))
-
-    try:
-        os.mkdir(os.path.normpath(sample_direc+os.sep+'probstack_overlays'))
-    except:
-        pass
-
-    plt.imshow(bigimage); plt.imshow(out_stack, alpha=0.5);
-    plt.axis('off')
-    # plt.show()
-    plt.savefig(outfile.replace('.tif','.jpg'), dpi=200, bbox_inches='tight')
-    plt.close('all')
-
-    print('Probability stack computed')
+    #print('Probability stack computed')
 
     ####===============================================================
     thres_land = threshold_otsu(out_stack[:,:,0])
@@ -378,9 +356,9 @@ def do_seg(f, M, WEIGHTING, meta):
     mask6 = mask5 + (out_stack[:,:,2]>thres_var).astype('uint8')
     mask6[mask6>1]=1
 
-    nx,ny=np.shape(mask1)
-    island_thres = 100*np.maximum(nx,ny)
-    meta['island_thres'] = island_thres
+    #nx,ny=np.shape(mask1)
+    #island_thres = 100*np.maximum(nx,ny)
+    #meta['island_thres'] = island_thres
 
     # crf_theta_slider_value=1
     # crf_mu_slider_value=1
@@ -394,17 +372,15 @@ def do_seg(f, M, WEIGHTING, meta):
     # mask4 -= 1
     # mask5 -= 1
 
-    mask0 = remove_small_holes(mask0.astype('bool'), island_thres).astype('uint8')
-    mask1 = remove_small_holes(mask1.astype('bool'), island_thres).astype('uint8')
-    mask2 = remove_small_holes(mask2.astype('bool'), island_thres).astype('uint8')
-    mask3 = remove_small_holes(mask3.astype('bool'), island_thres).astype('uint8')
-    mask4 = remove_small_holes(mask4.astype('bool'), island_thres).astype('uint8')
-    mask5 = remove_small_holes(mask5.astype('bool'), island_thres).astype('uint8')
+    # mask0 = remove_small_holes(mask0.astype('bool'), island_thres).astype('uint8')
+    # mask1 = remove_small_holes(mask1.astype('bool'), island_thres).astype('uint8')
+    # mask2 = remove_small_holes(mask2.astype('bool'), island_thres).astype('uint8')
+    # mask3 = remove_small_holes(mask3.astype('bool'), island_thres).astype('uint8')
+    # mask4 = remove_small_holes(mask4.astype('bool'), island_thres).astype('uint8')
+    # mask5 = remove_small_holes(mask5.astype('bool'), island_thres).astype('uint8')
 
     mask6 = ((mask0+mask1+mask2+mask3+mask4+mask5)>0).astype('uint8')
-    mask6 = remove_small_holes(mask6.astype('bool'), island_thres).astype('uint8')
-
-    del out_stack
+    #mask6 = remove_small_holes(mask6.astype('bool'), island_thres).astype('uint8')
 
     print('Land masks computed')
 
@@ -412,6 +388,39 @@ def do_seg(f, M, WEIGHTING, meta):
     meta['elapsed_minutes'] = elapsed
 
     print("Image masking took "+ str(elapsed) + " minutes")
+
+
+    #====================
+    #====================
+
+    start = time.time()
+		
+    #====================
+
+    outfile = segfile.replace(os.path.normpath(sample_direc), os.path.normpath(sample_direc+os.sep+'prob_stack'))
+
+    try:
+    	os.mkdir(os.path.normpath(sample_direc+os.sep+'prob_stack'))
+    except:
+    	pass
+
+    imsave(outfile.replace('.tif','.png'),(100*out_stack).astype('uint8'),compression=9)
+
+
+    outfile = segfile.replace(os.path.normpath(sample_direc), os.path.normpath(sample_direc+os.sep+'probstack_overlays'))
+
+    try:
+        os.mkdir(os.path.normpath(sample_direc+os.sep+'probstack_overlays'))
+    except:
+        pass
+
+    plt.imshow(bigimage); plt.imshow(out_stack, alpha=0.5);
+    plt.axis('off')
+    # plt.show()
+    plt.savefig(outfile.replace('.tif','.jpg'), dpi=200, bbox_inches='tight')
+    plt.close('all')	
+	
+    del out_stack
 	
     #====================
     outfile = segfile.replace(os.path.normpath(sample_direc), os.path.normpath(sample_direc+os.sep+'meta'))
@@ -479,7 +488,7 @@ def do_seg(f, M, WEIGHTING, meta):
         pass
 
     imsave(outfile.replace('.tif','.jpg'),255*mask4.astype('uint8'),quality=100)
-    del mask4
+    #del mask4
 
     #====================
     outfile = segfile.replace(os.path.normpath(sample_direc), os.path.normpath(sample_direc+os.sep+'masks5'))
@@ -525,10 +534,35 @@ def do_seg(f, M, WEIGHTING, meta):
     plt.savefig(outfile.replace('.tif','.jpg'), dpi=200, bbox_inches='tight')
     plt.close('all')
 
-    del bigimage, color_label
+    #====================
+    class_label_colormap = ['#3366CC','#DC3912']
+    try:
+        color_label = label_to_colors(mask4, bigimage.numpy()[:,:,0]==0, alpha=128, colormap=class_label_colormap, color_class_offset=0, do_alpha=False)
+    except:
+        color_label = label_to_colors(mask4, bigimage[:,:,0]==0, alpha=128, colormap=class_label_colormap, color_class_offset=0, do_alpha=False)
 
+    # del land
+
+    outfile = segfile.replace(os.path.normpath(sample_direc), os.path.normpath(sample_direc+os.sep+'mask4_overlays'))
+
+    try:
+        os.mkdir(os.path.normpath(sample_direc+os.sep+'mask4_overlays'))
+    except:
+        pass
+
+    plt.imshow(bigimage); plt.imshow(color_label, alpha=0.5);
+    plt.axis('off')
+    # plt.show()
+    plt.savefig(outfile.replace('.tif','.jpg'), dpi=200, bbox_inches='tight')
+    plt.close('all')
+
+
+    del bigimage, color_label, mask4, mask6
+
+    elapsed = (time.time() - start)/60
 
     print('Outputs made')
+    print("Writing outputs took "+ str(elapsed) + " minutes")
 
 
 
@@ -716,4 +750,4 @@ for counter,f in enumerate(sample_filenames):
     print('%i out of %i done'%(counter,len(sample_filenames)))
 
 
-# w = Parallel(n_jobs=-2, verbose=1, max_nbytes=None)(delayed(do_seg)(f,M, W, metadatadict) for f in tqdm(sample_filenames))
+#w = Parallel(n_jobs=-2, verbose=1, max_nbytes=None)(delayed(do_seg)(f,M, WEIGHTING, meta) for f in tqdm(sample_filenames))
