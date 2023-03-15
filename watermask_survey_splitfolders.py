@@ -3,7 +3,7 @@
 #
 # MIT License
 #
-# Copyright (c) 2021-23, Marda Science LLC
+# Copyright (c) 2023, Marda Science LLC
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -61,7 +61,14 @@ def split(a, n):
 ###########################################################################
 ##### MAIN
 
-## python .\watermask_survey_splitfolders.py -f F:\watermasking_benchmark\CenCA_coastal_20160308\images -c F:\dbuscombe_github\pcmsc_watermasking\config\watermask_benchmark_deploy_v3.json 
+# python .\watermask_survey_splitfolders.py -f F:\watermasking_benchmark\CenCA_coastal_20160308\images -c F:\dbuscombe_github\pcmsc_watermasking\config\watermask_benchmark_deploy_v4.json ; python .\watermask_survey_splitfolders.py -f F:\watermasking_benchmark\CenCA_coastal_20170125\images -c F:\dbuscombe_github\pcmsc_watermasking\config\watermask_benchmark_deploy_v4.json ; python .\watermask_survey_splitfolders.py -f F:\watermasking_benchmark\CenCA_coastal_20180910\images -c F:\dbuscombe_github\pcmsc_watermasking\config\watermask_benchmark_deploy_v4.json ; python .\watermask_survey_splitfolders.py -f F:\watermasking_benchmark\CenCA_coastal_20190223\images -c F:\dbuscombe_github\pcmsc_watermasking\config\watermask_benchmark_deploy_v4.json ; python .\watermask_survey_splitfolders.py -f F:\watermasking_benchmark\CenCA_coastal_20200419\images -c F:\dbuscombe_github\pcmsc_watermasking\config\watermask_benchmark_deploy_v4.json ; python .\watermask_survey_splitfolders.py -f F:\watermasking_benchmark\CenCA_coastal_20211218\images -c F:\dbuscombe_github\pcmsc_watermasking\config\watermask_benchmark_deploy_v4.json ; python .\watermask_survey_splitfolders.py -f F:\watermasking_benchmark\CenCA_coastal_20220609\images -c F:\dbuscombe_github\pcmsc_watermasking\config\watermask_benchmark_deploy_v4.json ; 
+
+
+# python .\watermask_survey_splitfolders.py -f F:\watermasking_benchmark\CenCA_coastal_20170125\images -c F:\dbuscombe_github\pcmsc_watermasking\config\watermask_benchmark_deploy_v4.json ;
+# python .\watermask_survey_splitfolders.py -f F:\watermasking_benchmark\CenCA_coastal_20180910\images -c F:\dbuscombe_github\pcmsc_watermasking\config\watermask_benchmark_deploy_v4.json ;
+# python .\watermask_survey_splitfolders.py -f F:\watermasking_benchmark\CenCA_coastal_20190223\images -c F:\dbuscombe_github\pcmsc_watermasking\config\watermask_benchmark_deploy_v4.json ; 
+# python .\watermask_survey_splitfolders.py -f F:\watermasking_benchmark\CenCA_coastal_20200419\images -c F:\dbuscombe_github\pcmsc_watermasking\config\watermask_benchmark_deploy_v4.json ; 
+# python .\watermask_survey_splitfolders.py -f F:\watermasking_benchmark\CenCA_coastal_20211218\images -c F:\dbuscombe_github\pcmsc_watermasking\config\watermask_benchmark_deploy_v4.json
 
 if __name__ == '__main__':
 

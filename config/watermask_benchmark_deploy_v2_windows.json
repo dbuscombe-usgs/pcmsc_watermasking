@@ -1,0 +1,8 @@
+{
+  "TARGET_SIZE": [768,1024],
+  "WEIGHTS1": "F:\\dbuscombe_github\\pcmsc_watermasking\\models\\weights\\watermask_merged_oblique_1024_768_v2_fullmodel.h5",
+  "WEIGHTS2": "F:\\dbuscombe_github\\pcmsc_watermasking\\models\\weights\\watermask_merged_oblique_1024_768_v3_fullmodel.h5",
+  "WEIGHTS3": "F:\\dbuscombe_github\\pcmsc_watermasking\\models\\weights\\watermask_merged_oblique_1024_768_v4_fullmodel.h5",
+  "WEIGHTS4": "F:\\dbuscombe_github\\pcmsc_watermasking\\models\\weights\\watermask_merged_oblique_1024_768_v6_fullmodel.h5",
+"WEIGHTING": [1,1,1,1]
+}

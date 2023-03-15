@@ -5,6 +5,68 @@ Written by Daniel Buscombe for the USGS Coastal Change Hazards Program
 
 Design and Concept by Andy Ritchie, Jon Warrick, and Daniel Buscombe, @ the USGS Coastal Change Hazards Program
 
+## ⬇️ Installation
+
+We advise creating a new conda environment to run the program.
+
+
+1. Install miniconda
+https://docs.conda.io/en/latest/miniconda.html
+
+2. Set up mamba
+
+```
+conda update -n base conda
+conda clean --all
+```
+
+```
+conda install -n base conda-libmamba-solver
+conda config --set solver libmamba
+```
+
+3. Create a conda env and install base dependencies
+
+```
+conda env create --file env/wm.yml
+```
+
+
+## Programs
+
+### `watermask_survey.py`
+
+Apply watermasking to each image in a folder. Example
+
+```
+python .\watermask_survey.py -f F:\watermasking_benchmark\CenCA_coastal_20160308\images -c F:\dbuscombe_github\pcmsc_watermasking\config\watermask_benchmark_deploy_v2.json
+```
+
+
+### `watermask_survey_splitfolders.py`
+
+Apply watermasking to each image in a folder, using threading to parallelize into N folders (N = number of available CPUs). Example
+
+```
+python .\watermask_survey_splitfolders.py -f F:\watermasking_benchmark\CenCA_coastal_20160308\images -c F:\dbuscombe_github\pcmsc_watermasking\config\watermask_benchmark_deploy_v2.json
+```
+
+### `watermask_single_image.py`
+
+Apply watermasking to a single image. Example
+
+```
+python watermask_single_image.py -f F:\watermasking_benchmark\CenCA_coastal_20170125/images/CAM432_20170125221615_40.jpg -c F:\dbuscombe_github\pcmsc_watermasking\config\watermask_benchmark_deploy_v2.json
+```
+
+### `write_bash_singleimages.py`
+
+Write a bash script (to run in WSL or linux) to call `watermask_single_image.py` for each image in a folder
+
+
+
+<!-- 
+
 ## What it does
 You provide 
 1) a directory of jpg images 
@@ -81,4 +143,4 @@ trained on datasets:
 5259 augmented images and binary masks resizd to 768 x 1024 x 3 pix
 
 
-%# EOF
+%# EOF -->
