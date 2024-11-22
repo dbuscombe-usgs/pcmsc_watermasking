@@ -3,7 +3,7 @@
 #
 # MIT License
 #
-# Copyright (c) 2023, Marda Science LLC
+# Copyright (c) 2023-2024, Marda Science LLC
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -80,33 +80,13 @@ out_folder = "/mnt/d/watermasking_results/SoCA_coastal_20220302"
 # folder = "/mnt/d/for_watermasking/CenCA-SoCA_coastal_20180329/images"
 # out_folder = "/mnt/d/watermasking_results/CenCA-SoCA_coastal_20180329"
 
-
-
 ##### test
 # folder = "/mnt/d/for_watermasking/test_multiband/jpg_adobe"
 # out_folder = "/mnt/d/watermasking_results/test_multiband"
 
 
-# test_case = 'sand'
-test_case = 'water'
-
-model = 'segformer'
-# model = 'resunet'
-
-####=======================================================================
-# if test_case=='water':
-configfile = f"/mnt/f/dbuscombe_github/pcmsc_watermasking/config/{test_case}mask_benchmark_deploy_{model}_unix.json"
-
+configfile = f"/mnt/f/dbuscombe_github/pcmsc_watermasking/deploy_config/watermask_benchmark_deploy_segformer_unix.json"
 print(configfile)
-
-# elif test_case=='sand':
-#     ### sand!!!
-#     configfile = f"/mnt/f/dbuscombe_github/pcmsc_watermasking/config/sandmask_benchmark_deploy_resunet_unix.json"
-
-# else:
-#     print("test case either water or sand")
-#     import sys; sys.exit(2)
-
 
 ##=============================================================
 
@@ -125,7 +105,4 @@ print("{} files to process".format(len(sample_filenames)))
 
 with open(tmp_file, "w") as tf:
     for f in sample_filenames:
-        if test_case=='water':
-            tf.write('python watermask_single_image.py -f '+f+' -c '+configfile+' -o '+out_folder+'\n')
-        elif test_case=='sand':
-            tf.write('python sandmask_single_image.py -f '+f+' -c '+configfile+' -o '+out_folder+'\n')
+        tf.write('python watermask_single_image.py -f '+f+' -c '+configfile+' -o '+out_folder+'\n')
