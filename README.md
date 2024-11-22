@@ -1,5 +1,5 @@
 # pcmsc westcoast watermasker
-Implementation of a residual U-Net model for detecting water in west coast usgs planecam imagery
+Implementation of a SegFormer model for detecting water in west coast usgs planecam imagery
 
 Written by Daniel Buscombe for the USGS Coastal Change Hazards Program
 
@@ -7,8 +7,7 @@ Design and Concept by Andy Ritchie, Jon Warrick, and Daniel Buscombe, @ the USGS
 
 ## ⬇️ Installation
 
-We advise creating a new conda environment to run the program.
-
+If you already have the conda environment, `gym`, installed from [Segmentation Gym](https://github.com/Doodleverse/segmentation_gym), you may use that. Otherwise, we advise creating a new conda environment to run the program. Note that MACS are NOT SUPPORTED. Only Linux and WSL on Windows. Not sorry :)
 
 1. Install miniconda
 https://docs.conda.io/en/latest/miniconda.html
@@ -34,22 +33,10 @@ conda env create --file env/wm.yml
 
 ## Programs
 
-### `watermask_survey.py`
+### `write_bash_singleimages.py`
 
-Apply watermasking to each image in a folder. Example
+Write a bash script (to run in WSL or linux) to call `watermask_single_image.py` for each image in a folder
 
-```
-python .\watermask_survey.py -f F:\watermasking_benchmark\CenCA_coastal_20160308\images -c F:\dbuscombe_github\pcmsc_watermasking\config\watermask_benchmark_deploy_v2.json
-```
-
-
-### `watermask_survey_splitfolders.py`
-
-Apply watermasking to each image in a folder, using threading to parallelize into N folders (N = number of available CPUs). Example
-
-```
-python .\watermask_survey_splitfolders.py -f F:\watermasking_benchmark\CenCA_coastal_20160308\images -c F:\dbuscombe_github\pcmsc_watermasking\config\watermask_benchmark_deploy_v2.json
-```
 
 ### `watermask_single_image.py`
 
@@ -59,10 +46,18 @@ Apply watermasking to a single image. Example
 python watermask_single_image.py -f F:\watermasking_benchmark\CenCA_coastal_20170125/images/CAM432_20170125221615_40.jpg -c F:\dbuscombe_github\pcmsc_watermasking\config\watermask_benchmark_deploy_v2.json
 ```
 
-### `write_bash_singleimages.py`
 
-Write a bash script (to run in WSL or linux) to call `watermask_single_image.py` for each image in a folder
+## Supporting codes and files
 
+### `watermask_funcs.py`
+A set of functions called by `watermask_single_image.py`
+
+### `test_gpus.py`
+A utility script to test if GPUs are working
+
+### deploy_config
+
+`watermask_benchmark_deploy_segformer_unix.json` contains the absolute paths to the models used by the model. Please update this file with paths on your system before running
 
 
 <!-- 

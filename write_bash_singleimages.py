@@ -25,19 +25,88 @@
 
 import random, string, glob, os
 
-# configfile = "F:\dbuscombe_github\pcmsc_watermasking\config\watermask_benchmark_deploy_v2_windows.json"
-# folder = "F:\watermasking_benchmark\CenCA_coastal_20170125\images"
-
-# folder = "/mnt/d/for_watermasking/20230105_auto_landscape"
-# out_folder = "/mnt/d/watermasking_results/20230105_auto_landscape"
 
 # folder = "/mnt/d/for_watermasking/CenCA_coastal_20151209/images"
 # out_folder = "/mnt/d/watermasking_results/CenCA_coastal_20151209"
 
-folder = "/mnt/d/for_watermasking/CenCA_coastal_20160126/images"
-out_folder = "/mnt/d/watermasking_results/CenCA_coastal_20160126"
+# folder = "/mnt/d/for_watermasking/CenCA_coastal_20160126/images"
+# out_folder = "/mnt/d/watermasking_results/CenCA_coastal_20160126"
 
-configfile = "/mnt/f/dbuscombe_github/pcmsc_watermasking/config/watermask_benchmark_deploy_v2_unix.json"
+# folder = "/mnt/d/for_watermasking/CenCA_coastal_20220609/images"
+# out_folder = "/mnt/d/watermasking_results/CenCA_coastal_20220609"
+
+
+########### July/Aug 2024
+
+folder = "/mnt/d/for_watermasking/SoCA_coastal_20220302/images"
+out_folder = "/mnt/d/watermasking_results/SoCA_coastal_20220302"
+
+# folder = "/mnt/d/for_watermasking/SoCA_coastal_20200918/images"
+# out_folder = "/mnt/d/watermasking_results/SoCA_coastal_20200918"
+
+# folder = "/mnt/d/for_watermasking/SoCA_coastal_20200506/images"
+# out_folder = "/mnt/d/watermasking_results/SoCA_coastal_20200506"
+
+# folder = "/mnt/d/for_watermasking/SoCA_coastal_20180913/images"
+# out_folder = "/mnt/d/watermasking_results/SoCA_coastal_20180913"
+
+# folder = "/mnt/d/for_watermasking/SoCA_coastal_20170301/images"
+# out_folder = "/mnt/d/watermasking_results/SoCA_coastal_20170301"
+
+# folder = "/mnt/d/for_watermasking/SoCA_coastal_20170301/images"
+# out_folder = "/mnt/d/watermasking_results/SoCA_coastal_20170301"
+
+# folder = "/mnt/d/for_watermasking/SoCA_coastal_20221002/images"
+# out_folder = "/mnt/d/watermasking_results/SoCA_coastal_20221002"
+
+# folder = "/mnt/d/for_watermasking/SoCA_coastal_20220928/jpg_adobe"
+# out_folder = "/mnt/d/watermasking_results/SoCA_coastal_20220928"
+
+# folder = "/mnt/d/for_watermasking/SoCA_coastal_20230308/jpg_adobe"
+# out_folder = "/mnt/d/watermasking_results/SoCA_coastal_20230308"
+
+# folder = "/mnt/d/for_watermasking/SoCA_coastal_20231012/jpg_adobe"
+# out_folder = "/mnt/d/watermasking_results/SoCA_coastal_20231012"
+
+# folder = "/mnt/d/for_watermasking/SoCA_coastal_20160928/images"
+# out_folder = "/mnt/d/watermasking_results/SoCA_coastal_20160928"
+
+# folder = "/mnt/d/for_watermasking/SoCA_coastal_20171227/images"
+# out_folder = "/mnt/d/watermasking_results/SoCA_coastal_20171227"
+
+# folder = "/mnt/d/for_watermasking/SoCA_Thomas-fire_20180123/jpg_adobe"
+# out_folder = "/mnt/d/watermasking_results/SoCA_Thomas-fire_20180123"
+
+# folder = "/mnt/d/for_watermasking/CenCA-SoCA_coastal_20180329/images"
+# out_folder = "/mnt/d/watermasking_results/CenCA-SoCA_coastal_20180329"
+
+
+
+##### test
+# folder = "/mnt/d/for_watermasking/test_multiband/jpg_adobe"
+# out_folder = "/mnt/d/watermasking_results/test_multiband"
+
+
+# test_case = 'sand'
+test_case = 'water'
+
+model = 'segformer'
+# model = 'resunet'
+
+####=======================================================================
+# if test_case=='water':
+configfile = f"/mnt/f/dbuscombe_github/pcmsc_watermasking/config/{test_case}mask_benchmark_deploy_{model}_unix.json"
+
+print(configfile)
+
+# elif test_case=='sand':
+#     ### sand!!!
+#     configfile = f"/mnt/f/dbuscombe_github/pcmsc_watermasking/config/sandmask_benchmark_deploy_resunet_unix.json"
+
+# else:
+#     print("test case either water or sand")
+#     import sys; sys.exit(2)
+
 
 ##=============================================================
 
@@ -56,5 +125,7 @@ print("{} files to process".format(len(sample_filenames)))
 
 with open(tmp_file, "w") as tf:
     for f in sample_filenames:
-        tf.write('python watermask_single_image.py -f '+f+' -c '+configfile+' -o '+out_folder+'\n')
-
+        if test_case=='water':
+            tf.write('python watermask_single_image.py -f '+f+' -c '+configfile+' -o '+out_folder+'\n')
+        elif test_case=='sand':
+            tf.write('python sandmask_single_image.py -f '+f+' -c '+configfile+' -o '+out_folder+'\n')

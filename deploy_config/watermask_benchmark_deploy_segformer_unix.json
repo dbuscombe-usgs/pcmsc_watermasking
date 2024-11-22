@@ -1,0 +1,7 @@
+{
+  "TARGET_SIZE": [768,1024],
+  "WEIGHTS1": "/mnt/f/dbuscombe_github/pcmsc_watermasking/water_models/weights/segformer/watermasking_all_v1_segfomer_fullmodel.h5",
+  "WEIGHTS2": "/mnt/f/dbuscombe_github/pcmsc_watermasking/water_models/weights/segformer/watermasking_all_v2_segfomer_subset_fullmodel.h5",
+  "WEIGHTS3": "/mnt/f/dbuscombe_github/pcmsc_watermasking/water_models/weights/segformer/watermasking_all_v3_segfomer_subset_fullmodel.h5",
+"WEIGHTING": [1,1,1]
+}

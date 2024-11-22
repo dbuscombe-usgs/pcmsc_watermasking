@@ -66,6 +66,12 @@ if __name__ == '__main__':
             out_folder = str(out_folder)
             out_folder = os.path.normpath(out_folder)
 
+
+    # configfile = '/mnt/f/dbuscombe_github/pcmsc_watermasking/config/watermask_benchmark_deploy_segformer_unix.json'
+    # out_folder = '/mnt/d/watermasking_results/test_multiband'
+    # f='/mnt/d/for_watermasking/test_multiband/jpg_adobe/CAM001_20180913143317_25.jpg'
+
+
     print(configfile)
     print(f)
     print(out_folder)
@@ -76,6 +82,27 @@ if __name__ == '__main__':
     except:
         pass
 
+    try:
+        os.mkdir(os.path.normpath(out_folder+os.sep+'water_mask_overlays'))
+    except:
+        pass
+
+    try:
+        os.mkdir(os.path.normpath(out_folder+os.sep+'water_masks'))
+    except:
+        pass
+
+    try:
+        os.mkdir(os.path.normpath(out_folder+os.sep+'water_meta'))
+    except:
+        pass
+
+    try:
+        os.mkdir(os.path.normpath(out_folder+os.sep+'water_prob_stack'))
+    except:
+        pass
+
+
     ### read config deployment file
     with open(configfile) as cf:
         config = json.load(cf)
@@ -85,8 +112,6 @@ if __name__ == '__main__':
 
     ## compile model, make metadata
     meta = dict()
-
-    MODEL = 'resunet'
 
     weights = []
     if 'WEIGHTS1' in locals():
@@ -104,7 +129,6 @@ if __name__ == '__main__':
 
     meta['TARGET_SIZE'] = TARGET_SIZE
 
-    # Mc, meta = make_and_compile_model(meta, weights, MODEL)
 
     M= []; C=[]; T = []; W = []
     for counter,w in enumerate(weights):
@@ -131,6 +155,12 @@ if __name__ == '__main__':
                             use_dropout_on_upsampling=USE_DROPOUT_ON_UPSAMPLING,#False,
                             )
 
+        elif MODEL=='segformer':
+            id2label = {}
+            for k in range(NCLASSES):
+                id2label[k]=str(k)
+            model = segformer(id2label,num_classes=NCLASSES)
+
         model.compile(optimizer = 'adam') #, loss = dice_coef_loss, metrics = [mean_iou, dice_coef])
 
         model.load_weights(w)
@@ -151,36 +181,10 @@ if __name__ == '__main__':
         WEIGHTING =  [1 for m in M]
         meta['WEIGHTING'] = WEIGHTING
 
-    # Mc = []
-    # for m in M:
-    #     m.compile(optimizer='adam')
-    #     Mc.append(m)
-
-    ## prep output folders
-
-    try:
-        os.mkdir(os.path.normpath(out_folder+os.sep+'mask6_overlays'))
-    except:
-        pass
-
-    try:
-        os.mkdir(os.path.normpath(out_folder+os.sep+'masks6'))
-    except:
-        pass
-
-    try:
-        os.mkdir(os.path.normpath(out_folder+os.sep+'meta'))
-    except:
-        pass
-
-    try:
-        os.mkdir(os.path.normpath(out_folder+os.sep+'prob_stack'))
-    except:
-        pass
 
     print("--- Prep: %s seconds ---" % (time.time() - start_time))
 
     ## run watermasking
-    do_seg(f, M, WEIGHTING, TARGET_SIZE, meta, out_folder)
+    do_seg(f, M, MODEL, WEIGHTING, TARGET_SIZE, meta, out_folder)
 
     print("--- Overall: %s seconds ---" % (time.time() - start_time))
